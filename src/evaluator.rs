@@ -31,7 +31,7 @@ impl<'src> Evaluator<'src> {
     pub fn eval(&mut self) {
         for expr in self.exprs.drain(..) {
             let _ = Box::new(5);
-            if let Some(expr) = expr.evaluate() {
+            if let Some(expr) = expr.as_expr().map(|e| e.evaluate()).flatten() {
                 println!("{expr}");
             }
         }

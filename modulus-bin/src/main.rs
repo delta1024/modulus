@@ -1,4 +1,4 @@
-use modulus::{lexer_plugins, Evaluator};
+use modulus::{plugins::ArithmaticPlugin, Evaluator};
 macro_rules! print_flush {
     ($($var:tt)*) => {
         use std::io::Write;
@@ -15,7 +15,7 @@ fn main() {
             break;
         }
         let mut evaluator = Evaluator::builder()
-            .plugin(lexer_plugins::ArithmaticParser)
+            .plugin(ArithmaticPlugin)
             .source(&buff)
             .build();
         if let Err(err) = evaluator.parse() {

@@ -4,7 +4,7 @@ use lexer::Lexer;
 
 pub mod evaluator;
 pub mod lexer;
-pub mod lexer_plugins;
+pub mod plugins;
 pub use evaluator::Evaluator;
 
 #[derive(Debug)]
@@ -32,13 +32,13 @@ pub trait ExperParser: TokenGroup {
     ) -> Box<(dyn TreeNode + 'static)>;
 }
 
-pub trait ExprPlugin: 'static + fmt::Debug {
+pub trait ExprPlugin: TreeNode +  'static + fmt::Debug {
     fn evaluate(&self) -> Option<f32> {
         None
     }
 }
 
-pub trait TreeNode: ExprPlugin + fmt::Debug + 'static {
+pub trait TreeNode:  fmt::Debug + 'static {
     fn as_expr(&self) -> Option<&dyn ExprPlugin> {
         None
     }
@@ -46,6 +46,7 @@ pub trait TreeNode: ExprPlugin + fmt::Debug + 'static {
 
 #[repr(transparent)]
 pub struct AstNode(Box<dyn TreeNode>);
+
 impl Deref for AstNode {
     type Target = dyn TreeNode;
     fn deref(&self) -> &Self::Target {
