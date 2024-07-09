@@ -7,3 +7,4 @@ version = "0.0.1-alpha.1"
 edition = "2021"
 description = "A small, modular, embeddable programing language"
 authors = ["Jacob Stannix <jakestannix@gmail.com>"]
+license = "MIT"
