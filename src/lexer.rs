@@ -70,8 +70,12 @@ pub struct LexerBuilder<'src> {
     handlers: Vec<LexerHandler>,
 }
 impl<'src> LexerBuilder<'src> {
-    pub fn add_handler(&mut self, handler: impl LexerPlugin) -> &mut Self {
+    pub fn new_handler(&mut self, handler: impl LexerPlugin) -> &mut Self {
         self.handlers.push(Box::new(handler));
+        self
+    }
+    pub fn add_handler(&mut self, handler: LexerHandler) -> &mut self {
+        self.handlers.push(handler);
         self
     }
     pub fn build(&mut self) -> Lexer<'src> {

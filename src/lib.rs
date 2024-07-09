@@ -1,9 +1,11 @@
-use std::{error, fmt, iter::Peekable};
+use std::{fmt, iter::Peekable};
 
-use lexer::{Lexer, LexerError};
+use lexer::Lexer;
 
+pub mod evaluator;
 pub mod lexer;
 pub mod lexer_plugins;
+pub use evaluator::Evaluator;
 
 #[derive(Debug)]
 pub enum LanguageLevel {
@@ -43,44 +45,5 @@ pub struct AstNode(Box<dyn TreeNode>);
 impl AstNode {
     pub fn evaluate(&self) -> Option<f32> {
         self.0.evaluate()
-    }
-}
-impl From<Box<(dyn TreeNode + 'static)>> for AstNode {
-    fn from(value: Box<dyn TreeNode>) -> Self {
-        Self(value)
-    }
-}
-
-pub struct Evaluator<'src> {
-    scanner: ParseScanner<'src>,
-    exprs: Vec<AstNode>,
-}
-impl<'src> Evaluator<'src> {
-    pub fn new(scanner: ParseScanner<'src>) -> Self {
-        Evaluator {
-            scanner,
-            exprs: vec![],
-        }
-    }
-    pub fn parse(&mut self) -> Result<(), LexerError> {
-        loop {
-            let Some(token) = self.scanner.next() else {
-                break;
-            };
-            let token = token?;
-            let expr = token
-                .expr_handler()
-                .expect("token must be a expression")
-                .parse_expr(&mut self.scanner, None);
-            self.exprs.push(AstNode(expr));
-        }
-        Ok(())
-    }
-    pub fn eval(&mut self) {
-        for expr in self.exprs.drain(..) {
-            if let Some(expr) = expr.evaluate() {
-                println!("{expr}");
-            }
-        }
     }
 }
