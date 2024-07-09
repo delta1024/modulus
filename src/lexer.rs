@@ -74,7 +74,7 @@ impl<'src> LexerBuilder<'src> {
         self.handlers.push(Box::new(handler));
         self
     }
-    pub fn add_handler(&mut self, handler: LexerHandler) -> &mut self {
+    pub fn add_handler(&mut self, handler: LexerHandler) -> &mut Self {
         self.handlers.push(handler);
         self
     }

@@ -218,4 +218,8 @@ impl ExprPlugin for ArithmaticExpr {
         }
     }
 }
-impl TreeNode for ArithmaticExpr {}
+impl TreeNode for ArithmaticExpr {
+    fn as_expr<'a>(&'a self) -> Option<&'a dyn ExprPlugin> {
+        Some(self)
+    }
+}

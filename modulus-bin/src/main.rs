@@ -1,4 +1,4 @@
-use modulus::{lexer::Lexer, lexer_plugins, Evaluator};
+use modulus::{lexer_plugins, Evaluator};
 macro_rules! print_flush {
     ($($var:tt)*) => {
         use std::io::Write;
@@ -14,10 +14,10 @@ fn main() {
         if stdin.read_line(&mut buff).unwrap() == 0 {
             break;
         }
-        let lexer = Lexer::builder(&buff)
-            .add_handler(lexer_plugins::ArithmaticParser)
+        let mut evaluator = Evaluator::builder()
+            .plugin(lexer_plugins::ArithmaticParser)
+            .source(&buff)
             .build();
-        let mut evaluator = Evaluator::new(lexer.peekable());
         if let Err(err) = evaluator.parse() {
             eprintln!("{err}");
         }

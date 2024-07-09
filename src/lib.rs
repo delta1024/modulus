@@ -1,4 +1,4 @@
-use std::{fmt, iter::Peekable};
+use std::{fmt, iter::Peekable, ops::Deref};
 
 use lexer::Lexer;
 
@@ -38,12 +38,17 @@ pub trait ExprPlugin: 'static + fmt::Debug {
     }
 }
 
-pub trait TreeNode: ExprPlugin + fmt::Debug + 'static {}
+pub trait TreeNode: ExprPlugin + fmt::Debug + 'static {
+    fn as_expr<'a>(&'a self) -> Option<&'a dyn ExprPlugin> {
+        None
+    }
+}
 
 #[repr(transparent)]
 pub struct AstNode(Box<dyn TreeNode>);
-impl AstNode {
-    pub fn evaluate(&self) -> Option<f32> {
-        self.0.evaluate()
+impl Deref for AstNode {
+    type Target = dyn TreeNode;
+    fn deref(&self) -> &Self::Target {
+        &*self.0
     }
 }
