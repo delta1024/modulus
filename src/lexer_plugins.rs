@@ -2,16 +2,12 @@ use crate::{
     lexer::{LexerError, LexerPlugin, LexerPos},
     ExperParser, ExprHandler, ExprPlugin, LanguageLevel, TokenGroup, TreeNode,
 };
-use core::panic;
-use std::{any::Any, error, fmt, u32};
+use std::{error, fmt};
 
 pub struct ArithmaticParser;
 impl LexerPlugin for ArithmaticParser {
     fn is_handler(&self, c: char) -> bool {
-        match c {
-            '0'..='9' | '+' | '-' | '*' | '/' => true,
-            _ => false,
-        }
+        matches!(c, '0'..='9' | '+' | '-' | '*' | '/')
     }
     fn handel_lexum<'src>(
         &self,
@@ -110,7 +106,7 @@ impl TokenGroup for ArithmaticToken {
     fn lang_level(&self) -> LanguageLevel {
         LanguageLevel::Expression
     }
-    fn expr_handler<'a>(&'a self) -> Option<&'a dyn ExperParser> {
+    fn expr_handler(&self) -> Option<&dyn ExperParser> {
         Some(self)
     }
 }
@@ -219,7 +215,7 @@ impl ExprPlugin for ArithmaticExpr {
     }
 }
 impl TreeNode for ArithmaticExpr {
-    fn as_expr<'a>(&'a self) -> Option<&'a dyn ExprPlugin> {
+    fn as_expr(&self) -> Option<&dyn ExprPlugin> {
         Some(self)
     }
 }

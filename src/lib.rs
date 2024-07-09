@@ -17,7 +17,7 @@ pub trait TokenGroup: fmt::Debug {
     fn line(&self) -> u32;
     fn lexum(&self) -> &str;
     fn lang_level(&self) -> LanguageLevel;
-    fn expr_handler<'a>(&'a self) -> Option<&'a dyn ExperParser> {
+    fn expr_handler(&self) -> Option<&dyn ExperParser> {
         None
     }
 }
@@ -39,7 +39,7 @@ pub trait ExprPlugin: 'static + fmt::Debug {
 }
 
 pub trait TreeNode: ExprPlugin + fmt::Debug + 'static {
-    fn as_expr<'a>(&'a self) -> Option<&'a dyn ExprPlugin> {
+    fn as_expr(&self) -> Option<&dyn ExprPlugin> {
         None
     }
 }

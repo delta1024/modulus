@@ -43,7 +43,7 @@ pub struct EvalBuilder<'src> {
 }
 impl<'src> EvalBuilder<'src> {
     pub fn source(&mut self, src: &'src str) -> &mut Self {
-        self.source.insert(src);
+        self.source = Some(src);
         self
     }
     pub fn plugin(&mut self, plugin: impl LexerPlugin) -> &mut Self {
