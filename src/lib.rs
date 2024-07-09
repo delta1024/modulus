@@ -1,79 +1,78 @@
-use std::{fmt, iter::Peekable, str::CharIndices};
+use std::{error, fmt, iter::Peekable};
 
+use lexer::{Lexer, LexerError};
+
+pub mod lexer;
 pub mod lexer_plugins;
-pub trait TokenGroup<'src>: fmt::Debug + 'src {
+
+
+#[derive(Debug)]
+pub enum LanguageLevel {
+    Declaration,
+    Statement,
+    Expression,
+}
+pub trait TokenGroup: fmt::Debug {
     fn line(&self) -> u32;
-    fn lexum(&self) -> &'src str;
-}
-pub type LexerPos<'src> = Peekable<CharIndices<'src>>;
-pub type LexerHandler<'src> = Box<dyn LexerPlugin<'src>>;
-pub enum LexerError {
-    InvalidToken(char),
-    IncompleteToken(Box<dyn std::error::Error>),
-}
-pub struct Lexer<'src>
-where
-    Self: 'src,
-    {
-    source: &'src str,
-    line: u32,
-    position: LexerPos<'src>,
-    handlers: Vec<LexerHandler<'src>>,
-}
-impl<'src> Lexer<'src> {
-    pub fn builder(source: &'src str) -> LexerBuilder<'src> {
-        LexerBuilder {
-            source,
-            handlers: vec![],
-        }
+    fn lexum(&self) -> &str;
+    fn lang_level(&self) -> LanguageLevel;
+    fn expr_handler<'a>(&'a self) -> Option<&'a dyn ExperParser> {
+        None
     }
 }
-impl<'src> Iterator for Lexer<'src> {
-    type Item = Result<Box<dyn TokenGroup<'src>>,LexerError>;
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.position.peek().is_some_and(|(_,c)| match c {
-            '\t' | '\r' | ' ' => true,
-            '\n' => {
-                self.line += 1;
-                true
-            },
-            _ => false,
-        }) {
-            self.position.next();
-        }
-        match self.position.next() {
-            Some((pos, c)) => {
-                for handler in &self.handlers {
-                    if handler.is_handler(c) {
-                        return Some(handler.handel_lexum(self.source, (pos,c),self.line, &mut self.position));
-                    }
-                }
-                Some(Err(LexerError::InvalidToken(c)))
-            }
-            None => None,
-        }
-    }
+pub type ParseScanner<'src> = Peekable<Lexer<'src>>;
+pub type ExprHandler = Box<dyn ExprPlugin>;
+
+pub trait ExperParser: TokenGroup {
+    fn parse_expr<'src>(&self,  scanner: &mut ParseScanner<'src>) -> Box<(dyn TreeNode + 'static)>;
 }
-pub struct LexerBuilder<'src> {
-    source: &'src str,
-    handlers: Vec<LexerHandler<'src>>,
-}
-impl<'src> LexerBuilder<'src> {
-    pub fn add_handler(&mut self, handler: impl LexerPlugin<'src>) -> &mut Self {
-        self.handlers.push(Box::new(handler));
-        self
-    }
-    pub fn build(&mut self) -> Lexer<'src> {
-        Lexer {
-            source: self.source,
-            line: 0,
-            position: self.source.char_indices().peekable(),
-            handlers: self.handlers.drain(..).collect(),
-        }
+
+pub trait ExprPlugin: 'static + fmt::Debug {
+    fn evaluate(&self) -> Option<f32> {
+        None
     }
 }
 
-pub trait LexerPlugin<'src>:  'src {
-    fn is_handler(&self, c: char) -> bool;
-    fn handel_lexum(&self, source: &'src str, cur_pos: (usize, char),line: u32, pos: &mut LexerPos<'src>) -> Result<Box<dyn TokenGroup<'src>>, LexerError>;
+
+pub trait TreeNode: ExprPlugin + fmt::Debug + 'static { }
+
+#[repr(transparent)]
+pub struct AstNode(Box<dyn TreeNode>);
+impl AstNode {
+    pub fn evaluate(&self) -> Option<f32> {
+        self.0.evaluate()
+    }
+}
+impl From<Box<(dyn TreeNode + 'static)>> for AstNode {
+    fn from(value: Box<dyn TreeNode>) -> Self {
+        Self(value)
+    }
+}
+
+pub struct Evaluator<'src> {
+    scanner: ParseScanner<'src>,
+    exprs: Vec<AstNode>,
+}
+impl<'src> Evaluator<'src> {
+    pub fn new(scanner: ParseScanner<'src>) -> Self {
+        Evaluator { scanner, exprs: vec![] }
+    }
+    pub fn parse(&mut self) -> Result<(), LexerError> {
+        loop {
+            let Some(token) = self.scanner.next() else {
+                break;
+            };
+            let token = token?;
+            let expr = token.expr_handler().expect("token must be a expression").parse_expr(&mut self.scanner);
+            self.exprs.push(AstNode(expr));
+        }
+        Ok(())
+    }
+    pub fn eval(&mut self) {
+        for expr in self.exprs.drain(..) {
+            if let Some(expr) = expr.evaluate() {
+                println!("{expr}");
+            }
+        }
+    }
 }

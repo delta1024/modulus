@@ -1,4 +1,4 @@
-use modulus::{lexer_plugins, Lexer, LexerError};
+use modulus::{lexer_plugins, Evaluator, lexer::Lexer};
 macro_rules! print_flush {
     ($($var:tt)*) => {
         use std::io::Write;
@@ -17,13 +17,11 @@ fn main() {
         let lexer = Lexer::builder(&buff)
             .add_handler(lexer_plugins::ArithmaticParser)
             .build();
-        for token in lexer {
-            match token {
-                Ok(token) => println!("{token:?}"),
-                Err(LexerError::InvalidToken(c)) => eprintln!("Invalid Token: {c}"),
-                Err(LexerError::IncompleteToken(err)) => eprintln!("Lexer Error: {err}"),
-            }
+        let mut evaluator = Evaluator::new(lexer.peekable());
+        if let Err(err) = evaluator.parse() {
+            eprintln!("{err}");
         }
+        evaluator.eval();
         buff.clear();
     }
 }
