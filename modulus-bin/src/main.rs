@@ -1,4 +1,4 @@
-use modulus::{lexer_plugins, Evaluator, lexer::Lexer};
+use modulus::{lexer::Lexer, lexer_plugins, Evaluator};
 macro_rules! print_flush {
     ($($var:tt)*) => {
         use std::io::Write;

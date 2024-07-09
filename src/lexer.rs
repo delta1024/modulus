@@ -1,4 +1,4 @@
-use std::{fmt,iter::Peekable, str::CharIndices};
+use std::{fmt, iter::Peekable, str::CharIndices};
 
 use crate::TokenGroup;
 
@@ -20,7 +20,7 @@ impl fmt::Display for LexerError {
 pub struct Lexer<'src>
 where
     Self: 'src,
-    {
+{
     source: &'src str,
     line: u32,
     position: LexerPos<'src>,
@@ -35,14 +35,14 @@ impl<'src> Lexer<'src> {
     }
 }
 impl Iterator for Lexer<'_> {
-    type Item = Result<Box<dyn TokenGroup>,LexerError>;
+    type Item = Result<Box<dyn TokenGroup>, LexerError>;
     fn next(&mut self) -> Option<Self::Item> {
-        while self.position.peek().is_some_and(|(_,c)| match c {
+        while self.position.peek().is_some_and(|(_, c)| match c {
             '\t' | '\r' | ' ' => true,
             '\n' => {
                 self.line += 1;
                 true
-            },
+            }
             _ => false,
         }) {
             self.position.next();
@@ -51,7 +51,12 @@ impl Iterator for Lexer<'_> {
             Some((pos, c)) => {
                 for handler in &self.handlers {
                     if handler.is_handler(c) {
-                        return Some(handler.handel_lexum(self.source, (pos,c),self.line, &mut self.position));
+                        return Some(handler.handel_lexum(
+                            self.source,
+                            (pos, c),
+                            self.line,
+                            &mut self.position,
+                        ));
                     }
                 }
                 Some(Err(LexerError::InvalidToken(c)))
@@ -81,5 +86,11 @@ impl<'src> LexerBuilder<'src> {
 
 pub trait LexerPlugin: 'static {
     fn is_handler(&self, c: char) -> bool;
-    fn handel_lexum<'src>(&self, source: &'src str, cur_pos: (usize, char),line: u32, pos: &mut LexerPos<'src>) -> Result<Box<dyn TokenGroup>, LexerError>;
+    fn handel_lexum<'src>(
+        &self,
+        source: &'src str,
+        cur_pos: (usize, char),
+        line: u32,
+        pos: &mut LexerPos<'src>,
+    ) -> Result<Box<dyn TokenGroup>, LexerError>;
 }

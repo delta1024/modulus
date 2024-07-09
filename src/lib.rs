@@ -5,7 +5,6 @@ use lexer::{Lexer, LexerError};
 pub mod lexer;
 pub mod lexer_plugins;
 
-
 #[derive(Debug)]
 pub enum LanguageLevel {
     Declaration,
@@ -24,7 +23,11 @@ pub type ParseScanner<'src> = Peekable<Lexer<'src>>;
 pub type ExprHandler = Box<dyn ExprPlugin>;
 
 pub trait ExperParser: TokenGroup {
-    fn parse_expr<'src>(&self,  scanner: &mut ParseScanner<'src>) -> Box<(dyn TreeNode + 'static)>;
+    fn parse_expr<'src>(
+        &self,
+        scanner: &mut ParseScanner<'src>,
+        lhs: Option<Box<(dyn ExprPlugin + 'static)>>,
+    ) -> Box<(dyn TreeNode + 'static)>;
 }
 
 pub trait ExprPlugin: 'static + fmt::Debug {
@@ -33,8 +36,7 @@ pub trait ExprPlugin: 'static + fmt::Debug {
     }
 }
 
-
-pub trait TreeNode: ExprPlugin + fmt::Debug + 'static { }
+pub trait TreeNode: ExprPlugin + fmt::Debug + 'static {}
 
 #[repr(transparent)]
 pub struct AstNode(Box<dyn TreeNode>);
@@ -55,7 +57,10 @@ pub struct Evaluator<'src> {
 }
 impl<'src> Evaluator<'src> {
     pub fn new(scanner: ParseScanner<'src>) -> Self {
-        Evaluator { scanner, exprs: vec![] }
+        Evaluator {
+            scanner,
+            exprs: vec![],
+        }
     }
     pub fn parse(&mut self) -> Result<(), LexerError> {
         loop {
@@ -63,7 +68,10 @@ impl<'src> Evaluator<'src> {
                 break;
             };
             let token = token?;
-            let expr = token.expr_handler().expect("token must be a expression").parse_expr(&mut self.scanner);
+            let expr = token
+                .expr_handler()
+                .expect("token must be a expression")
+                .parse_expr(&mut self.scanner, None);
             self.exprs.push(AstNode(expr));
         }
         Ok(())
