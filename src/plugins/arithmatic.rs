@@ -1,6 +1,6 @@
 use crate::{
-    lexer::{LexerError, LexerPlugin, LexerPos},
-    ExperParser, ExprHandler, ExprPlugin, LanguageLevel, TokenGroup, TreeNode,
+    EvalError,
+    lexer::{LexerError, LexerPlugin, LexerPos}, value::Value, ExperParser, ExprHandler, ExprPlugin, LanguageLevel, TokenGroup, TreeNode
 };
 use std::{error, fmt};
 
@@ -187,30 +187,27 @@ pub enum ArithmaticExpr {
     Mul { a: ExprHandler, b: ExprHandler },
     Div { a: ExprHandler, b: ExprHandler },
 }
+
 impl ExprPlugin for ArithmaticExpr {
-    fn evaluate(&self) -> Option<f32> {
+    fn evaluate(&self) -> Result<Value, EvalError> {
         match self {
-            ArithmaticExpr::Literal(v) => Some(*v),
+            ArithmaticExpr::Literal(v) => Ok(Value::from(*v)),
             ArithmaticExpr::Add { a, b } => match (a.evaluate(), b.evaluate()) {
-                (Some(a), Some(b)) => a + b,
-                (Some(_), None) | (None, Some(_)) | (None, None) => unreachable!(),
-            }
-            .into(),
+                (Ok(Value::Number(a)), Ok(Value::Number(b))) => Ok(a + b).map(Value::Number),
+                _ => panic!("wrong type"),
+            },
             ArithmaticExpr::Sub { a, b } => match (a.evaluate(), b.evaluate()) {
-                (Some(a), Some(b)) => a - b,
-                (Some(_), None) | (None, Some(_)) | (None, None) => unreachable!(),
-            }
-            .into(),
+                (Ok(Value::Number(a)), Ok(Value::Number(b))) => Ok(a - b).map(Value::Number),
+                _ => panic!("wrong type"),
+            },
             ArithmaticExpr::Mul { a, b } => match (a.evaluate(), b.evaluate()) {
-                (Some(a), Some(b)) => a * b,
-                (Some(_), None) | (None, Some(_)) | (None, None) => unreachable!(),
-            }
-            .into(),
+                (Ok(Value::Number(a)), Ok(Value::Number(b))) => Ok(a * b).map(Value::Number),
+                _ => panic!("wrong type"),
+            },
             ArithmaticExpr::Div { a, b } => match (a.evaluate(), b.evaluate()) {
-                (Some(a), Some(b)) => a / b,
-                (Some(_), None) | (None, Some(_)) | (None, None) => unreachable!(),
-            }
-            .into(),
+                (Ok(Value::Number(a)), Ok(Value::Number(b))) => Ok(a / b).map(Value::Number),
+                _ => panic!("wrong type"),
+            },
         }
     }
 }
