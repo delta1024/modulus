@@ -1,4 +1,4 @@
-use modulus::{plugins::ArithmaticPlugin, Evaluator};
+use modulus::{plugins::{LiteralPlugin, ArithmaticPlugin}, Evaluator};
 macro_rules! print_flush {
     ($($var:tt)*) => {
         use std::io::Write;
@@ -15,6 +15,7 @@ fn main() {
             break;
         }
         let mut evaluator = Evaluator::builder()
+            .plugin(LiteralPlugin)
             .plugin(ArithmaticPlugin)
             .source(&buff)
             .build();

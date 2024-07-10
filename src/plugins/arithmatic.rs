@@ -7,7 +7,7 @@ use std::{error, fmt};
 pub struct ArithmaticParser;
 impl LexerPlugin for ArithmaticParser {
     fn is_handler(&self, c: char) -> bool {
-        matches!(c, '0'..='9' | '+' | '-' | '*' | '/')
+        matches!(c,  '+' | '-' | '*' | '/')
     }
     fn handel_lexum<'src>(
         &self,
@@ -17,34 +17,7 @@ impl LexerPlugin for ArithmaticParser {
         pos: &mut LexerPos<'src>,
     ) -> Result<Box<dyn TokenGroup>, LexerError> {
         match c {
-            '0'..='9' => {
-                let mut last_pos = None;
-                let mut seen_dot = false;
-                while pos.peek().is_some_and(|(_, c)| match c {
-                    '0'..='9' => true,
-                    '.' if !seen_dot => {
-                        seen_dot = true;
-                        true
-                    }
-                    _ => false,
-                }) {
-                    last_pos = pos.next();
-                }
 
-                match last_pos {
-                    Some((pos, '.')) => Err(LexerError::IncompleteToken(Box::new(
-                        InvalidNumberError(line, source[start..=pos].to_string()),
-                    ))),
-                    Some((pos, _)) => Ok(Box::new(ArithmaticToken::Number {
-                        line,
-                        lexum: source[start..=pos].to_string(),
-                    })),
-                    None => Ok(Box::new(ArithmaticToken::Number {
-                        line,
-                        lexum: source[start..=start].to_string(),
-                    })),
-                }
-            }
             '+' => Ok(Box::new(ArithmaticToken::Plus {
                 line,
                 lexum: source[start..=start].to_string(),
@@ -66,18 +39,9 @@ impl LexerPlugin for ArithmaticParser {
     }
 }
 
-#[derive(Debug)]
-pub struct InvalidNumberError(u32, String);
-impl fmt::Display for InvalidNumberError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[line: {}] Error at {}: Invalid Number", self.0, self.1)
-    }
-}
-impl error::Error for InvalidNumberError {}
 
 #[derive(Debug)]
 pub enum ArithmaticToken {
-    Number { line: u32, lexum: String },
     Plus { line: u32, lexum: String },
     Minus { line: u32, lexum: String },
     Star { line: u32, lexum: String },
@@ -87,8 +51,7 @@ pub enum ArithmaticToken {
 impl TokenGroup for ArithmaticToken {
     fn line(&self) -> u32 {
         match self {
-            ArithmaticToken::Number { line, .. }
-            | ArithmaticToken::Plus { line, .. }
+             ArithmaticToken::Plus { line, .. }
             | ArithmaticToken::Minus { line, .. }
             | ArithmaticToken::Star { line, .. }
             | ArithmaticToken::Slash { line, .. } => *line,
@@ -96,8 +59,7 @@ impl TokenGroup for ArithmaticToken {
     }
     fn lexum(&self) -> &str {
         match self {
-            ArithmaticToken::Number { lexum, .. }
-            | ArithmaticToken::Plus { lexum, .. }
+             ArithmaticToken::Plus { lexum, .. }
             | ArithmaticToken::Minus { lexum, .. }
             | ArithmaticToken::Star { lexum, .. }
             | ArithmaticToken::Slash { lexum, .. } => lexum,
@@ -116,21 +78,8 @@ impl ExperParser for ArithmaticToken {
         &self,
         scanner: &mut crate::ParseScanner<'src>,
         lhs: Option<Box<(dyn ExprPlugin + 'static)>>,
-    ) -> Box<(dyn TreeNode + 'static)> {
+    ) -> Box<(dyn ExprPlugin + 'static)> {
         match self {
-            ArithmaticToken::Number { lexum, .. } => {
-                let lhs = Box::new(ArithmaticExpr::Literal(
-                    lexum.parse().expect("could not parse numer"),
-                ));
-                if let Some(next) = scanner.next() {
-                    next.expect("scann err")
-                        .expr_handler()
-                        .expect("expected expression")
-                        .parse_expr(scanner, Some(lhs))
-                } else {
-                    lhs
-                }
-            }
             ArithmaticToken::Plus { .. } => {
                 let next = scanner
                     .next()

@@ -20,11 +20,18 @@ impl<'src> Evaluator<'src> {
                 break;
             };
             let token = token?;
+            if token.lit_handler().is_some() {
+                let expr = token.lit_handler().unwrap().parse_lit();
+            self.exprs.push(AstNode(expr));
+            } else {
+                let lhs = self.exprs.pop().expect("expected binary expression");
             let expr = token
                 .expr_handler()
                 .expect("token must be a expression")
-                .parse_expr(&mut self.scanner, None);
-            self.exprs.push(AstNode(expr));
+                .parse_expr(&mut self.scanner, Some(lhs.0));
+                self.exprs.push(AstNode(expr));
+
+            }
         }
         Ok(())
     }

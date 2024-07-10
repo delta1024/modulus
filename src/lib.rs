@@ -31,22 +31,30 @@ pub type ParseScanner<'src> = Peekable<Lexer<'src>>;
 pub type ExprHandler = Box<dyn ExprPlugin>;
 
 pub trait LitParser: TokenGroup {
-    fn parse_lit(&self) -> Box<(dyn TreeNode + 'static)>;
+    fn parse_lit(&self) -> Box<(dyn ExprPlugin + 'static)>;
 }
-
+impl<T: LitParser> ExperParser for T {
+    fn parse_expr<'src>(
+            &self,
+            _scanner: &mut ParseScanner<'src>,
+            _lhs: Option<Box<(dyn ExprPlugin + 'static)>>,
+        ) -> Box<(dyn ExprPlugin + 'static)> {
+        self.parse_lit()
+    }
+}
 pub trait ExperParser: TokenGroup {
     fn parse_expr<'src>(
         &self,
         scanner: &mut ParseScanner<'src>,
         lhs: Option<Box<(dyn ExprPlugin + 'static)>>,
-    ) -> Box<(dyn TreeNode + 'static)>;
+    ) -> Box<(dyn ExprPlugin + 'static)>;
 }
 
 #[derive(Debug)]
 pub enum EvalError{
     Expr(Value, Box<dyn error::Error>),
 }
-pub trait ExprPlugin: TreeNode +  'static + fmt::Debug {
+pub trait ExprPlugin: TreeNode +  'static + fmt::Debug  {
     fn evaluate(&self) -> Result<Value, EvalError>;
 }
 pub trait LitPlugin: TreeNode + 'static + fmt::Debug {
@@ -67,10 +75,10 @@ pub trait TreeNode:  fmt::Debug + 'static {
 }
 
 #[repr(transparent)]
-pub struct AstNode(Box<dyn TreeNode>);
+pub struct AstNode(Box<dyn ExprPlugin>);
 
 impl Deref for AstNode {
-    type Target = dyn TreeNode;
+    type Target = dyn ExprPlugin;
     fn deref(&self) -> &Self::Target {
         &*self.0
     }
