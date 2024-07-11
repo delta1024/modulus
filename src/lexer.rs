@@ -1,36 +1,28 @@
-use std::{fmt, iter::Peekable, ops::Deref, str::CharIndices};
+use std::{fmt, iter::Peekable, str::CharIndices};
 
-use crate::{errors::LexerError, ExprParser, LitParser};
-pub enum ParseAdapter<'a> {
+use crate::{
+    errors::LexerError,
+    parser::{ExprParser, LitParser},
+};
+pub enum ParseAdapter {
     Declaration,
     Statement,
-    Expression(&'a dyn ExprParser),
-    Literal(&'a dyn LitParser),
+    Expression(Box<dyn ExprParser>),
+    Literal(Box<dyn LitParser>),
 }
 
 pub trait TokenGroup: fmt::Debug + 'static {
-    fn level(&self) -> ParseAdapter;
+    fn to_token(self: Box<Self>) -> Box<dyn TokenGroup>;
+    fn adapter(self: Box<Self>) -> ParseAdapter;
     fn lexum(&self) -> &str;
     fn line(&self) -> u32;
 }
 
-#[repr(transparent)]
-pub struct TokenHandler(Box<dyn TokenGroup>);
+pub type TokenHandler = Box<dyn TokenGroup>;
 
-impl TokenHandler {
-    pub fn new(token: impl TokenGroup) -> Self {
-        Self(Box::new(token))
-    }
-}
-
-impl Deref for TokenHandler {
-    type Target = dyn TokenGroup;
-    fn deref(&self) -> &Self::Target {
-        &*self.0
-    }
-}
 pub type CharStream<'src> = Peekable<CharIndices<'src>>;
 pub trait LexerPlugin: 'static {
+    fn as_lexer(self: Box<Self>) -> Box<dyn LexerPlugin>;
     fn handles_char(&self, c: char) -> bool;
     fn lex_token<'src>(
         &self,
@@ -40,19 +32,7 @@ pub trait LexerPlugin: 'static {
         scanner: &mut CharStream<'src>,
     ) -> Result<TokenHandler, LexerError>;
 }
-#[repr(transparent)]
-pub struct LexHandler(Box<dyn LexerPlugin>);
-impl LexHandler {
-    pub fn new(plugin: impl LexerPlugin) -> Self {
-        Self(Box::new(plugin))
-    }
-}
-impl Deref for LexHandler {
-    type Target = dyn LexerPlugin;
-    fn deref(&self) -> &Self::Target {
-        &*self.0
-    }
-}
+pub type LexHandler = Box<dyn LexerPlugin>;
 pub struct Lexer<'src> {
     source: &'src str,
     scanner: CharStream<'src>,
@@ -94,8 +74,8 @@ impl<'src> LexerBuilder<'src> {
         self.source = Some(source);
         self
     }
-    pub fn plugin(&mut self, plugin: impl LexerPlugin) -> &mut Self {
-        self.plugins.push(LexHandler::new(plugin));
+    pub fn plugin<T: Sized + LexerPlugin + Default>(&mut self) -> &mut Self {
+        self.plugins.push(Box::new(T::default()));
         self
     }
     pub fn build(self) -> Lexer<'src> {

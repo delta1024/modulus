@@ -1,12 +1,12 @@
 use crate::{
-    ast::ExprHandler,
+    ast::{ExprHandler, LiteralHandler},
     errors::ParseError,
     lexer::{ParseAdapter, TokenGroup, TokenStream},
     State,
 };
 
 pub trait LitParser: TokenGroup + 'static {
-    fn parse_lit(&self) -> ExprHandler;
+    fn parse_lit(&self) -> LiteralHandler;
 }
 pub trait ExprParser: TokenGroup + 'static {
     fn parse_expr(
@@ -36,8 +36,8 @@ impl<'src> Parser<'src> {
                 Some(Err(err)) => return Err(ParseError(err.to_string())),
                 None => break,
             };
-            let expr = match next.level() {
-                ParseAdapter::Literal(l) => l.parse_lit(),
+            let expr = match next.adapter() {
+                ParseAdapter::Literal(l) => l.parse_lit().to_expr_node(),
                 ParseAdapter::Expression(e) => {
                     e.parse_expr(self.nodes.pop(), &mut self.tokens, state)?
                 }
