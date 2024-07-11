@@ -2,5 +2,6 @@ pub mod ast;
 pub mod errors;
 pub mod lexer;
 pub mod parser;
+pub mod state;
 
-pub struct State;
+pub use state::State;
