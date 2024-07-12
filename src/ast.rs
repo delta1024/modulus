@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::{errors::EvalError, State};
 #[derive(Debug, Default)]
 pub enum Value {
@@ -5,10 +7,17 @@ pub enum Value {
     #[default]
     None,
 }
-pub enum EvalAdapter<'a> {
-    Expression(&'a dyn ExprNode),
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Number(n) => write!(f, "{n}"),
+            Self::None => write!(f, "none"),
+        }
+    }
 }
 pub enum TreeNode {
+    Declaration(Box<dyn DeclNode>),
+    Statement(Box<dyn StmtNode>),
     Expression(Box<dyn ExprNode>),
 }
 
@@ -34,3 +43,19 @@ impl From<Box<dyn ExprNode>> for TreeNode {
     }
 }
 pub type ExprHandler = Box<dyn ExprNode>;
+
+pub trait StmtNode {
+    fn to_stmt_node(self: Box<Self>) -> Box<dyn StmtNode>;
+    fn eval_stmt(&self, state: &mut State) -> Result<(), EvalError>;
+}
+
+impl From<Box<dyn StmtNode>> for TreeNode {
+    fn from(value: Box<dyn StmtNode>) -> Self {
+        Self::Statement(value)
+    }
+}
+
+pub trait DeclNode {
+    fn to_decl_node(self: Box<Self>) -> Box<dyn StmtNode>;
+    fn eval_decl(&self, state: &mut State) -> Result<(), EvalError>;
+}

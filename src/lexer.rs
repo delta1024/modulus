@@ -1,4 +1,4 @@
-use std::{fmt, iter::Peekable, str::CharIndices};
+use std::{fmt, iter::Peekable, rc::Rc, str::CharIndices};
 
 use crate::{
     errors::LexerError,
@@ -22,7 +22,7 @@ pub type TokenHandler = Box<dyn TokenGroup>;
 
 pub type CharStream<'src> = Peekable<CharIndices<'src>>;
 pub trait LexerPlugin: 'static {
-    fn as_lexer(self: Box<Self>) -> Box<dyn LexerPlugin>;
+    fn as_lexer(self: Rc<Self>) -> Rc<dyn LexerPlugin>;
     fn handles_char(&self, c: char) -> bool;
     fn lex_token<'src>(
         &self,
@@ -32,7 +32,7 @@ pub trait LexerPlugin: 'static {
         scanner: &mut CharStream<'src>,
     ) -> Result<TokenHandler, LexerError>;
 }
-pub type LexHandler = Box<dyn LexerPlugin>;
+pub type LexHandler = Rc<dyn LexerPlugin>;
 pub struct Lexer<'src> {
     source: &'src str,
     scanner: CharStream<'src>,
@@ -69,19 +69,28 @@ pub struct LexerBuilder<'src> {
     source: Option<&'src str>,
     plugins: Vec<LexHandler>,
 }
-impl<'src> LexerBuilder<'src> {
+impl<'src> LexerBuilder<'src>
+where
+Self: 'src,
+{
     pub fn source(&mut self, source: &'src str) -> &mut Self {
         self.source = Some(source);
         self
     }
     pub fn plugin<T: Sized + LexerPlugin + Default>(&mut self) -> &mut Self {
-        self.plugins.push(Box::new(T::default()));
+        self.plugins.push(Rc::new(T::default()));
         self
     }
-    pub fn build(self) -> Lexer<'src> {
+    pub fn plugins<'a, 'b>(&'a mut self, plugins: Vec<&Rc<dyn LexerPlugin>>) -> &'a mut Self {
+        for handler in plugins {
+            self.plugins.push(Rc::clone(handler));
+        }
+        self
+    }
+    pub fn build(&mut self) -> Lexer<'src> {
         Lexer {
             source: self.source.unwrap(),
-            plugins: self.plugins,
+            plugins: self.plugins.drain(..).collect(),
             scanner: self.source.unwrap().char_indices().peekable(),
             line: 0,
         }

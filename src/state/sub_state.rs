@@ -3,13 +3,13 @@ pub trait SubState:  'static {
     fn state_name(&self) -> &'static str;
 }
 
-pub trait SubStateExe: SubState + 'static{
-    fn as_state(self: Rc<Self>) -> Rc<dyn SubStateExe>;
+pub trait SubStateExt: SubState + 'static{
+    fn as_state(self: Rc<Self>) -> Rc<dyn SubStateExt>;
     fn as_any(self: Rc<Self>) -> Rc<dyn Any> ;
 }
 
-impl<T: SubState + Sized> SubStateExe for T {
-    fn as_state(self: Rc<Self>) -> Rc<dyn SubStateExe> {
+impl<T: SubState + Sized> SubStateExt for T {
+    fn as_state(self: Rc<Self>) -> Rc<dyn SubStateExt> {
         self
     }
     fn as_any(self: Rc<Self>) -> Rc<dyn Any> {
